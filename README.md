@@ -85,8 +85,3 @@ python main.py
   ]
 }
 
-
-
-✔ git add .
-✔ git commit -m "Agentic Project 1 (Day 1): task planning and execution agent"
-✔ git push
