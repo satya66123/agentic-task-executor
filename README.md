@@ -1,34 +1,41 @@
-# 🤖 Agentic Task Executor (From Scratch)
+# 🤖 Agentic Task Executor
 
-An **Agentic AI system** that takes a high-level task, decomposes it into steps using an LLM, executes steps iteratively using tools, maintains internal memory, and returns a complete execution trace.
+An **agentic AI system** built from scratch that can take a high-level task, decompose it into ordered steps, execute each step using tools, maintain memory, and return a complete execution trace.
 
-✅ Built from scratch in Python (no LangChain / CrewAI)  
-✅ Designed to demonstrate real agentic reasoning & orchestration  
-✅ Interview-ready project
 
 ---
 
-## 🎯 Project Goal
+## 🎯 Features
 
-Build an agent that can:
+- **Task Planning (LLM-based)**  
+  Converts a high-level goal into structured step-by-step plan.
 
-1. Take a high-level task
-2. Break it into ordered steps (planning)
-3. Execute steps one by one (execution)
-4. Maintain simple memory / state (memory)
-5. Produce a final structured output (trace)
+- **Iterative Execution Loop**  
+  Executes steps one-by-one in sequence.
+
+- **Tool Routing / Tool Usage**
+  Uses built-in tools such as:
+  - `research`
+  - `write_text`
+  - `summarize`
+
+- **Agent Memory**
+  Stores:
+  - executed steps
+  - results
+  - execution logs (timestamps)
+
+- **Traceable Output**
+  Returns full structured JSON for transparency and debugging.
 
 ---
 
-## 🧠 What This Demonstrates
+## 🧠 How It Works
 
-- Task decomposition (planning with LLM)
-- Tool execution (tool usage)
-- State management (memory)
-- Iterative execution loop (agent orchestration)
-- Agent traceability (logs)
-
-> This project shows core patterns behind AutoGPT/CrewAI, implemented with minimal readable code.
+1. **Planner** generates steps from the task (LLM)
+2. **Executor** selects and executes the correct tool for each step
+3. **Memory** stores steps + results and logs
+4. **Agent** orchestrates the full loop and returns final output
 
 ---
 
@@ -36,96 +43,46 @@ Build an agent that can:
 
 agentic-task-executor/
 ├── agent/
-│ ├── init.py
-│ ├── planner.py # Task planning using LLM
-│ ├── executor.py # Executes a single step using tools
-│ ├── memory.py # Stores steps/results/logs
-│ └── agent.py # Agent orchestrator loop
+│ ├── planner.py
+│ ├── executor.py
+│ ├── memory.py
+│ ├── agent.py
+│ ├── tool_selector.py
+│ ├── evaluator.py
+│ └── replanner.py
 ├── tools/
-│ ├── init.py
-│ └── basic_tools.py # Simple tools (write, summarize, research)
-├── main.py # Entry point
+│ └── basic_tools.py
+├── main.py
 ├── requirements.txt
 ├── .env
+├── LICENSE.txt
 └── README.md
 
 
 
 ---
 
-## 🔧 Dependencies
+## 🔧 Requirements
 
-openai
-python-dotenv
-pydantic
+- Python 3.10+
+- OpenAI API Key
 
-
-
----
-
-## 🔐 Environment Setup
-
-Create a `.env` file:
-
-OPENAI_API_KEY=your_openai_api_key_here
-
-
-
-⚠️ Do not commit `.env` to GitHub.
-
----
-
-## ▶️ Run
+Install dependencies:
 
 ```bash
-python main.py
-✅ Progress Timeline
-✅ Day 1 — Basic Agent (Completed)
-Implemented Components
-Memory: stores executed steps + results
+pip install -r requirements.txt
+🔐 Environment Setup
+Create .env file:
 
-Planner: breaks tasks into ordered steps using OpenAI LLM
-
-Executor: executes steps using basic tools + fallback logic
-
-Agent Orchestrator: connects planning → execution → memory
-
-Output (Day 1)
-Structured output:
-
-json
+txt
 Copy code
-{
-  "steps": ["..."],
-  "results": ["..."]
-}
-✅ Day 2 — Execution Logs + Retry Loop + Smarter Execution (Completed)
-Day 2 upgraded the system into a more realistic agent with:
+OPENAI_API_KEY=your_openai_api_key_here
+⚠️ Do not commit .env to GitHub.
 
-✅ Enhancements Added
-Execution logs (traceability)
-Each step and result is logged with timestamp.
+▶️ Run
 
-Retry mechanism + safety controls
-
-max_steps limit
-
-max_retries for robust execution
-
-error logging for debugging
-
-Smarter executor
-Executor supports more natural steps:
-
-research steps → research()
-
-write/draft/define/explain → write_text()
-
-summarize → summarize()
-
-Output (Day 2)
-Now includes steps + results + logs:
-
+python main.py
+✅ Example Output (Structure)
 json
 
 {
@@ -138,39 +95,116 @@ json
     }
   ]
 }
-🚫 Scope Rules (Intentional)
-❌ No vector DB / embeddings / RAG
-
-❌ No UI
-
-❌ No external frameworks (LangChain, CrewAI, AutoGPT)
-
-✅ Pure agent logic with readable code
-
 🧠 Interview Pitch
-“I built an agentic AI system from scratch that decomposes tasks using an LLM, executes them step-by-step using tools, maintains execution memory, and logs the full execution trace — without relying on agent frameworks.”
+“I built an agentic AI system from scratch that decomposes tasks using an LLM, executes them step-by-step using tools, maintains memory, and returns the full execution trace — without frameworks.”
 
-🚀 Next Steps (Day 3 Plan)
-Planned improvements:
+📜 License
+This project is licensed under the MIT License. See LICENSE.txt.
 
-LLM-based tool selection (dynamic tool routing)
-
-Completion evaluation (done / not done)
-
-Replanning if a plan is weak or incomplete
-
-More memory-aware execution
-
-✅ Day 2 complete. Agent now supports retries, logs, and smarter step execution.
-
+python
 
 
 ---
 
-## ✅ Day 2 Commit Message (recommended)
+## 2) ✅ `agent/planner.py` (clean + separate steps)
 
-After updating README:
+👉 Replace your **`agent/planner.py`** with this:
 
-git add README.md
-git commit -m "Update README with Day 2 progress"
+```python
+import os
+import re
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+def _clean_steps(text: str) -> list[str]:
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    steps: list[str] = []
+
+    for line in lines:
+        # Remove numbering/bullets like: "1.", "1)", "-", "*"
+        cleaned = re.sub(r"^(\d+[\.\)]|\-|\*)\s*", "", line).strip()
+
+        if not cleaned:
+            continue
+
+        # Filter out non-step noise
+        if cleaned.lower().startswith(("task:", "note:", "explanation:")):
+            continue
+
+        steps.append(cleaned)
+
+    return steps
+
+
+def plan_task(task: str) -> list[str]:
+    prompt = f"""
+Break the following task into clear, ordered steps.
+Each step must be short and actionable.
+
+Task: {task}
+
+Return ONLY a numbered list of steps.
+Do not add explanations.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    raw = response.choices[0].message.content or ""
+    steps = _clean_steps(raw)
+
+    # Fallback plan
+    if not steps:
+        steps = [
+            "Research the topic",
+            "Write the required content",
+            "Summarize the final content"
+        ]
+
+    return steps
+✅ Now planner returns steps like:
+
+Research the topic
+
+Write the required content
+
+Summarize the final content
+
+3) ✅ MIT License (LICENSE.txt)
+Create LICENSE.txt in root folder and paste this:
+
+
+MIT License
+
+Copyright (c) 2026 Satya Nani
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+✅ Final Commit (after changes)
+
+git add .
+git commit -m "Finalize README, improve planner step parsing, add MIT license"
 git push
