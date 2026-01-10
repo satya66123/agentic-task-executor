@@ -1,11 +1,12 @@
+import json
 from agent.agent import TaskAgent
 
 if __name__ == "__main__":
-    agent = TaskAgent()
+    agent = TaskAgent(max_steps=10, max_retries=2)
 
     output = agent.run(
         "Write a short introduction about LLMs and summarize it"
     )
 
-    print("FINAL OUTPUT:")
-    print(output)
+    print("\nFINAL OUTPUT:\n")
+    print(json.dumps(output, indent=2))
