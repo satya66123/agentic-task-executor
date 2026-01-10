@@ -8,3 +8,11 @@ def summarize(text: str):
 
 def research(topic: str):
     return f"Research completed: Key points about {topic} gathered."
+
+
+# ✅ Tool registry (Day 3)
+TOOLS = {
+    "research": research,
+    "write_text": write_text,
+    "summarize": summarize
+}

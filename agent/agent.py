@@ -1,10 +1,11 @@
 from agent.planner import plan_task
 from agent.executor import execute_step
+from agent.evaluator import evaluate_step
 from agent.memory import AgentMemory
 
 
 class TaskAgent:
-    def __init__(self, max_steps: int = 10, max_retries: int = 2):
+    def __init__(self, max_steps: int = 12, max_retries: int = 0):
         self.memory = AgentMemory()
         self.max_steps = max_steps
         self.max_retries = max_retries
@@ -25,17 +26,22 @@ class TaskAgent:
             self.memory.add_step(step)
 
             retries = 0
-            while retries <= self.max_retries:
-                try:
-                    result = execute_step(step)
-                    self.memory.add_result(result)
-                    break
-                except Exception as e:
+            done = False
+
+            while retries <= self.max_retries and not done:
+                memory_context = self.memory.context_text()
+                tool_used, result = execute_step(step, memory_context)
+                self.memory.add_result(f"[{tool_used}] {result}")
+
+                done = evaluate_step(step, result)
+
+                if not done:
                     retries += 1
-                    self.memory.log(f"ERROR on step: {step} | retry {retries} | {str(e)}")
+                    self.memory.log(f"NOT DONE: retrying step ({retries}) -> {step}")
 
                     if retries > self.max_retries:
                         self.memory.add_result(f"FAILED step after retries: {step}")
+                        break
 
             executed += 1
 
